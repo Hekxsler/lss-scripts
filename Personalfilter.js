@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        [LSS] Personalfilter
-// @version     0.1.0
+// @version     0.1.1
 // @author      Hekxsler
 // @description Filtert zu übernehmendes Personal.
 // @match       https://www.leitstellenspiel.de/buildings/*/hire
@@ -165,7 +165,7 @@
             if(end == 0) end = buildings.length;
             for (let i = settings.skipBuildings; i < end; i++) {
                 const building = buildings[i]
-                if((!settings.hideUneducated && i >= (settings.limit+settings.skipBuildings)) || (settings.hideUneducated && found >= settings.limit)){
+                if((!settings.hideUneducated && i >= settings.limit+settings.skipBuildings) || (settings.hideUneducated && found >= settings.limit)){
                     building.parentElement.style.display = "none"
                     continue
                 }
@@ -196,19 +196,6 @@
             observer.observe(buildings[i]);
         }
     }
-
-
-    function hideBuildingsEvent(event) {
-        settings.hideUneducated = event.target.checked
-        var value = eduSelect.value
-        if(value != ""){
-            updateList(...value.split(","))
-        }
-        saveSettings()
-    }
-    const tickBox = document.getElementById("buildingsfilter")
-    tickBox.checked = settings.hideUneducated
-    tickBox.addEventListener("change", hideBuildingsEvent)
 
     function limitBuildings(){
         if(settings.limit == 0){
@@ -259,22 +246,30 @@
     })
 
     async function selectEducationEvent() {
+        var education = eduSelect.value
         if(loading) ac.abort("PerformanceCancel")
-        const value = event.target.value
         resetBuildings()
-        if (value){
+        if(observer != null) observer.disconnect()
+        if(education != ""){
             if(settings.limit > 0){
-                if(observer != null) observer.disconnect()
-                updateList(...value.split(","))
+                updateList(...education.split(","))
             }else{
-                var education_id = value.split(",")[1]
-                var school_id = await getSchoolId(getSchoolType(value.split(",")[0]))
-                respondToVisibility(school_id, education_id)
+                var school_id = await getSchoolId(getSchoolType(education.split(",")[0]))
+                respondToVisibility(school_id, education.split(",")[1])
             }
         }else{
             limitBuildings()
         }
     }
     eduSelect.addEventListener("change", selectEducationEvent)
+
+    function hideBuildingsEvent(event) {
+        settings.hideUneducated = event.target.checked
+        saveSettings()
+        selectEducationEvent()
+    }
+    const tickBox = document.getElementById("buildingsfilter")
+    tickBox.checked = settings.hideUneducated
+    tickBox.addEventListener("change", hideBuildingsEvent)
 
 })()
